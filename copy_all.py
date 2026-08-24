@@ -86,8 +86,6 @@ def copy_uc_files():
     generators_uc_dir = os.path.realpath(os.path.join(generators_dir, 'uc'))
     bindings_target_dir = os.path.join(esp32_software_dir, 'src', 'bindings')
     net_arduino_esp32_target_dir = os.path.join(esp32_software_dir, 'src', 'net_arduino_esp32')
-    hal_arduino_esp32_brick_target_dir = os.path.join(esp32_software_dir, 'src', 'modules', 'esp32_brick', 'hal_arduino_esp32_brick')
-    hal_arduino_esp32_ethernet_brick_target_dir = os.path.join(esp32_software_dir, 'src', 'modules', 'esp32_ethernet_brick', 'hal_arduino_esp32_ethernet_brick')
 
     def copy_files(source_dir, target_dir, exclude_pattern=None, include_pattern=None, patch_include=False, header_marker=None):
         source_names = []
@@ -164,8 +162,6 @@ def copy_uc_files():
     copy_files(os.path.join(generators_uc_dir, 'bindings'), bindings_target_dir, include_pattern=r'^(brick(let)?_.*\.(h|c)|display_names.c)$',
                exclude_pattern=r'^bricklet_stream_test\.(h|c)$', header_marker=' * This file was automatically generated on ')
     copy_files(os.path.join(generators_uc_dir, 'net_arduino_esp32'), net_arduino_esp32_target_dir, include_pattern=r'^.*\.(h|c|cpp)$')
-    copy_files(os.path.join(generators_uc_dir, 'hal_arduino_esp32_brick'), hal_arduino_esp32_brick_target_dir, include_pattern=r'^.*\.(h|c|cpp)$', patch_include=True)
-    copy_files(os.path.join(generators_uc_dir, 'hal_arduino_esp32_ethernet_brick'), hal_arduino_esp32_ethernet_brick_target_dir, include_pattern=r'^.*\.(h|c|cpp)$', patch_include=True)
 
 def main():
     path = generators_dir
