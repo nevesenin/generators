@@ -110,7 +110,7 @@ make html
 
 # Generate brickv GUI
 cd ~/tf/brickv/src/
-python3 build_all_ui.py
+python3 build_src.py
 
 # Build brickd
 cd ~/tf/brickd/src/
