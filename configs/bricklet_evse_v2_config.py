@@ -92,7 +92,8 @@ com['constant_groups'].append({
               ('Switch', 2),
               ('DC Fault', 3),
               ('Contactor', 4),
-              ('Communication', 5)]
+              ('Communication', 5),
+              ('Plug Lock', 6)]
 })
 
 com['constant_groups'].append({
@@ -372,6 +373,21 @@ com['constant_groups'].append({
               ('Voltage Valid', 4),      # 1 << 2: voltage/phases inputs are fresh and valid
               ('Current Valid', 8),      # 1 << 3: current inputs are fresh and valid
               ('Frequency Valid', 16)]   # 1 << 4: frequency input is fresh and valid
+})
+
+com['constant_groups'].append({
+'name': 'Plug Lock State',
+'type': 'uint8',
+'constants': [('Disabled', 0),                          # Not activated, or not running on EVSE hardware version 4
+              # Activated, but no fresh assertion that the bricklets are dedicated to this
+              # lock. NOT the same as "the bricklets are gone" - a dead lock supply
+              # de-asserts the harness loop with both of them still fitted.
+              ('Bricklet Dedication Not Verified', 1),
+              ('Idle', 2),                              # Activated, dedication verified, the plug does not need to be locked
+              ('Waiting', 3),                           # The plug must be locked but is not confirmed locked yet
+              ('Locked', 4),                            # The plug must be locked and is confirmed locked
+              ('Fault Timeout', 5),                     # The plug did not lock within the timeout
+              ('Fault Lock', 6)]                        # The charger reported that it failed to lock the plug
 })
 
 com['constant_groups'].append({
@@ -2419,6 +2435,341 @@ Returns the backlight mode as set by :func:`Set Energy Meter Display Backlight`.
 """
 Gibt den Hintergrundbeleuchtungs-Modus zurück, wie von
 :func:`Set Energy Meter Display Backlight` gesetzt.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Set Plug Lock Configuration',
+'elements': [('Enabled', 'bool', 1, 'in', {'default': False})],
+'since_firmware': [1, 0, 0],
+'doc': ['bf', {
+'en':
+"""
+Enables or disables the Type 2 plug lock. The setting is persistent.
+
+The plug lock is driven by an Industrial Quad Relay Bricklet 2.1 and an
+Industrial Digital In 4 Bricklet 2.0 that are connected to the charger's
+ESP32, not to the EVSE itself. Enabling is therefore only accepted while a
+fresh hardware report is present, see :func:`Set Plug Lock Hardware State`.
+Without one this function returns an invalid parameter error.
+
+Enabling is also refused while the contactor is not confirmed to be open,
+because the plug cannot already be locked at that moment and charging would
+be stopped immediately. Stop the charging session first.
+
+Disabling is refused unless the last hardware report says that **neither**
+bricklet could be found. A wallbox whose socket is wired for a lock but has it
+switched off would energize with a removable plug, so switching it off requires
+unplugging both bricklets inside the enclosure first.
+
+A broken harness loop is deliberately *not* enough. The loop is also de-asserted
+when the lock supply fails while both bricklets are still fitted, so accepting a
+disable on a missing loop would let a blown fuse open a path that is meant to
+need someone at the enclosure. Bricklet discovery is the only signal here that
+distinguishes the two.
+
+No report at all - a charge controller talking to nothing - refuses both
+directions, because every gate here requires positive evidence rather than the
+absence of a complaint.
+
+Note what this does and does not protect against. It is a guard against
+accidents, hardware faults and confusion; it is not a security boundary. This
+function and :func:`Set Plug Lock Hardware State` are reachable through the same
+proxy, so a caller who can already speak to this device can assert either. Use an
+authenticated proxy if that matters.
+
+While the plug lock is enabled and the harness loop is missing or stops being
+reported, charging is blocked with error state 6 (Plug Lock).
+
+This is currently only supported on WARP4.
+""",
+'de':
+"""
+Aktiviert oder deaktiviert die Typ-2-Steckerverriegelung. Die Einstellung ist
+persistent.
+
+Die Verriegelung wird von einem Industrial Quad Relay Bricklet 2.1 und einem
+Industrial Digital In 4 Bricklet 2.0 angesteuert, die am ESP32 der Wallbox
+angeschlossen sind und nicht am EVSE selbst. Das Aktivieren ist daher nur
+möglich, solange eine aktuelle Hardware-Meldung vorliegt, siehe
+:func:`Set Plug Lock Hardware State`. Ohne diese gibt diese Funktion einen
+Invalid-Parameter-Fehler zurück.
+
+Das Aktivieren wird außerdem abgelehnt, solange das Schütz nicht sicher offen
+ist, da der Stecker zu diesem Zeitpunkt noch nicht verriegelt sein kann und
+das Laden sofort abgebrochen würde. Zuerst den Ladevorgang beenden.
+
+Das Deaktivieren wird abgelehnt, solange die letzte Hardware-Meldung nicht sagt,
+dass **keines** der beiden Bricklets gefunden wurde. Eine Wallbox, deren Buchse
+für eine Verriegelung verdrahtet ist, diese aber abgeschaltet hat, würde mit
+abziehbarem Stecker Spannung führen. Zum Abschalten müssen daher zuerst beide
+Bricklets im Gehäuse abgezogen werden.
+
+Eine unterbrochene Prüfschleife reicht bewusst nicht aus. Die Schleife fällt auch
+dann ab, wenn die Versorgung der Verriegelung ausfällt, während beide Bricklets
+weiterhin verbaut sind. Ein Deaktivieren bei fehlender Schleife zu akzeptieren
+würde also einer durchgebrannten Sicherung einen Weg öffnen, der jemanden am
+Gehäuse erfordern soll. Nur die Geräteerkennung unterscheidet die beiden Fälle.
+
+Gar keine Meldung - ein Laderegler, der mit nichts spricht - lehnt beide
+Richtungen ab, denn jede Prüfung hier verlangt einen positiven Nachweis und nicht
+das Ausbleiben einer Fehlermeldung.
+
+Zu beachten, wogegen das schützt und wogegen nicht: Es ist eine Absicherung gegen
+Versehen, Hardwarefehler und Verwechslung, aber keine Sicherheitsgrenze. Diese
+Funktion und :func:`Set Plug Lock Hardware State` sind über denselben Proxy
+erreichbar, ein Aufrufer kann also beide setzen. Wo das eine Rolle spielt, sollte
+der Proxy authentifiziert werden.
+
+Solange die Verriegelung aktiviert ist und die Prüfschleife fehlt oder nicht
+mehr gemeldet wird, wird das Laden mit Error-State 6 (Plug Lock) blockiert.
+
+Wird aktuell nur auf WARP4 unterstützt.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Get Plug Lock Configuration',
+'elements': [('Enabled', 'bool', 1, 'out', {'default': False})],
+'since_firmware': [1, 0, 0],
+'doc': ['bf', {
+'en':
+"""
+Returns the configuration as set by :func:`Set Plug Lock Configuration`.
+""",
+'de':
+"""
+Gibt die Konfiguration zurück, wie von :func:`Set Plug Lock Configuration`
+gesetzt.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Set Plug Lock Hardware State',
+'elements': [('Bricklet Dedication Verified', 'bool', 1, 'in', {'default': False}),
+             ('Bricklets Not Found', 'bool', 1, 'in', {'default': False}),
+             ('Lock Closed', 'bool', 1, 'in', {'default': False}),
+             ('Lock Fault', 'bool', 1, 'in', {'default': False}),
+             ('Shutting Down', 'bool', 1, 'in', {'default': False}),
+             ('Still Starting Up', 'bool', 1, 'in', {'default': False})],
+'since_firmware': [1, 0, 0],
+'doc': ['bf', {
+'en':
+"""
+Reports the state of the plug lock hardware. The EVSE cannot see the
+bricklets itself, so this has to be asserted from the outside.
+
+*Bricklet Dedication Verified* means the harness loop was checked and passed,
+not merely that two bricklets answered. The loop is a spare relay channel wired
+in series through a spare input channel and back to the lock supply; the caller
+toggles it and checks that the input follows. Device discovery alone would be
+satisfied by any unrelated pair of these bricklets, whereas the loop proves that
+these two specific devices are dedicated to this lock - wired to each other and
+to a lock supply. Because it is a wire, nothing reachable over the network can
+assert it.
+
+Note the direction of the claim: *false* means the dedication could not be
+verified, not that the bricklets are unrelated. A failure of the lock supply
+de-asserts it while both bricklets are still fitted.
+
+*Bricklets Not Found* is the separate question of whether the two bricklets are
+discoverable at all, and it is the *only* thing here that answers it. It is true
+only when **neither** of them was found; one remaining bricklet is a partly
+disassembled lock, not a removed one. It exists because a de-asserted dedication
+does not distinguish "the lock was removed" from "the lock supply failed", and
+:func:`Set Plug Lock Configuration` has to tell those apart before it may accept
+being switched off.
+
+The polarity is chosen so that the restrictive answer is the one a zero byte
+gives: an unset field reads as *found*, which refuses the disable.
+
+*Lock Closed* is the debounced feedback input, not a conclusion drawn from a
+state machine: it means the feedback contact currently says the plug is
+locked.
+
+*Lock Fault* means an attempt to **lock** the plug failed. A failure to
+*unlock* must not be reported here: a plug that is stuck locked is in the safe
+state, and blocking charging over it would help nobody.
+
+*Shutting Down* announces that the caller is about to restart on purpose.
+While it is set the EVSE selects IEC 61851 state B over state C, which releases
+the contactor while leaving the plug connected and the PWM running - the same
+thing it does when no current is allowed. Charging therefore stops the ordinary
+way rather than through an error state.
+
+It interrupts charging rather than ending the session: nothing records that a
+session was stopped, so once the caller clears the flag and the vehicle is still
+asking to charge, charging resumes by itself. What the field guarantees is that
+the contactor is open for as long as the caller is away. It is not a one-shot: the last
+value reported stands for the whole of the caller's absence, and the caller
+clears it by reporting *false* again once it is back.
+
+It exists so that a contactor found closed with no report is unambiguously an
+anomaly, rather than the normal outcome of every restart. Note that it can only
+make the charger more restrictive: a caller that crashes, is powered off or is
+reset without sending it simply falls through to the staleness handling below,
+so there is nothing to be gained by withholding it.
+
+*Still Starting Up* says that the caller has not yet had the chance to reach a
+verdict on the harness loop, so a *Bricklet Dedication Verified* of *false*
+means "not yet" rather than "checked and broken". Without it the two are
+indistinguishable on the wire - both are a plain *false* - and the first
+seconds of every start-up would be reported as a failure.
+
+It can only delay the resulting error, never prevent it: the EVSE stops
+believing the claim after its own timeout regardless of what the caller keeps
+saying. Clear it as soon as a verdict exists, and note the polarity - an unset
+field reads as *settled*, which is the strict answer.
+
+This call doubles as a heartbeat: the report goes stale after 5 seconds and
+is then treated as "not verified". Call it at least once per second while the
+plug lock is in use.
+
+At least one report must have arrived before
+:func:`Set Plug Lock Configuration` will accept ``enabled`` = *true*.
+""",
+'de':
+"""
+Meldet den Zustand der Hardware für die Steckerverriegelung. Das EVSE kann die
+Bricklets nicht selbst sehen, daher muss dies von außen gemeldet werden.
+
+*Bricklet Dedication Verified* bedeutet, dass die Prüfschleife geprüft und für
+gut befunden wurde, und nicht nur, dass zwei Bricklets geantwortet haben. Die
+Schleife ist ein freier Relaiskanal, der in Reihe über einen freien
+Eingangskanal zurück zur Versorgung der Verriegelung verdrahtet ist; der
+Aufrufer schaltet sie und prüft, ob der Eingang folgt. Die reine Geräteerkennung
+wäre auch durch ein beliebiges anderes Paar dieser Bricklets erfüllt, während
+die Schleife nachweist, dass genau diese beiden Geräte dieser Verriegelung
+zugeordnet sind - miteinander und mit einer Versorgung der Verriegelung
+verdrahtet. Da es sich um einen Draht handelt, kann nichts über das Netzwerk
+sie vortäuschen.
+
+Auf die Richtung der Aussage achten: *false* bedeutet, dass die Zuordnung nicht
+nachgewiesen werden konnte, und nicht, dass die Bricklets nicht zusammengehören.
+Ein Ausfall der Versorgung der Verriegelung setzt den Wert zurück, obwohl beide
+Bricklets weiterhin verbaut sind.
+
+*Bricklets Not Found* ist die davon getrennte Frage, ob die beiden Bricklets
+überhaupt gefunden werden, und der einzige Wert hier, der sie beantwortet. Er ist
+nur dann wahr, wenn **keines** von beiden gefunden wurde; ein verbliebenes
+Bricklet ist eine teilweise zerlegte Verriegelung und keine entfernte. Der Wert
+existiert, weil eine nicht nachgewiesene Zuordnung nicht zwischen "die
+Verriegelung wurde ausgebaut" und "die Versorgung der Verriegelung ist
+ausgefallen" unterscheidet, und :func:`Set Plug Lock Configuration` genau das
+unterscheiden muss, bevor ein Abschalten akzeptiert werden darf.
+
+Die Polarität ist so gewählt, dass ein Null-Byte die restriktive Antwort ergibt:
+ein nicht gesetztes Feld wird als *gefunden* gelesen und lehnt das Abschalten ab.
+
+*Lock Closed* ist der entprellte Eingangswert und keine aus einer
+Zustandsmaschine abgeleitete Aussage: Der Rückmeldekontakt meldet aktuell, dass
+der Stecker verriegelt ist.
+
+*Lock Fault* bedeutet, dass ein Versuch zu **verriegeln** fehlgeschlagen ist.
+Ein fehlgeschlagenes *Entriegeln* darf hier nicht gemeldet werden: Ein
+verriegelt feststeckender Stecker ist der sichere Zustand, und das Laden
+deswegen zu blockieren hilft niemandem.
+
+*Shutting Down* kündigt an, dass der Aufrufer absichtlich neu startet. Solange
+der Wert gesetzt ist, wählt das EVSE IEC-61851-Zustand B statt C: Das Schütz
+fällt ab, während der Stecker verbunden bleibt und das PWM weiterläuft - also
+dasselbe, was auch bei einem erlaubten Strom von null passiert. Das Laden endet
+damit auf dem normalen Weg und nicht über einen Fehlerzustand.
+
+Es unterbricht das Laden, beendet aber nicht die Ladesitzung: Es wird nirgends
+festgehalten, dass eine Sitzung gestoppt wurde. Sobald der Aufrufer den Wert
+zurücknimmt und das Fahrzeug weiterhin laden möchte, läuft das Laden von selbst
+wieder an. Zugesichert wird ausschließlich, dass das Schütz offen ist, solange
+der Aufrufer weg ist.
+
+Der Wert ist kein Einzelimpuls: Der zuletzt gemeldete Wert gilt für die gesamte
+Abwesenheit des Aufrufers, und der Aufrufer setzt ihn zurück, indem er nach dem
+Neustart wieder *false* meldet.
+
+Er kann den Ladevorgang nur zusätzlich einschränken, nie freigeben: Ein Aufrufer,
+der abstürzt, abgeschaltet oder zurückgesetzt wird, ohne ihn zu senden, landet
+einfach in der unten beschriebenen Verfallsbehandlung. Es ist also nichts damit
+zu gewinnen, ihn zurückzuhalten.
+
+*Still Starting Up* sagt aus, dass der Aufrufer noch keine Gelegenheit hatte,
+die Prüfschleife zu bewerten, ein *Bricklet Dedication Verified* von *false*
+also "noch nicht" bedeutet und nicht "geprüft und defekt". Ohne diesen Wert sind
+beide auf dem Bus nicht zu unterscheiden - beide sind ein schlichtes *false* -
+und die ersten Sekunden jedes Starts würden als Fehler gemeldet.
+
+Er kann den daraus folgenden Fehler nur verzögern, nie verhindern: Das EVSE
+glaubt die Aussage nach seiner eigenen Zeitgrenze nicht mehr, unabhängig davon,
+was der Aufrufer weiter meldet. Der Wert sollte zurückgenommen werden, sobald
+eine Bewertung vorliegt. Auf die Polarität achten: Ein nicht gesetztes Feld wird
+als *bewertet* gelesen, also als die strenge Antwort.
+
+Dieser Aufruf dient gleichzeitig als Heartbeat: Die Meldung verfällt nach
+5 Sekunden und wird dann als "nicht nachgewiesen" gewertet. Der Aufruf sollte
+mindestens einmal pro Sekunde erfolgen, solange die Verriegelung genutzt wird.
+
+Es muss mindestens eine Meldung eingegangen sein, bevor
+:func:`Set Plug Lock Configuration` ``enabled`` = *true* akzeptiert.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Get Plug Lock State',
+'elements': [('State', 'uint8', 1, 'out', {'constant_group': 'Plug Lock State'}),
+             ('Lock Wanted', 'bool', 1, 'out', {'default': False})],
+'since_firmware': [1, 0, 0],
+'doc': ['bf', {
+'en':
+"""
+Returns the current state of the plug lock.
+
+*Lock Wanted* is the EVSE's decision on whether the plug has to be locked
+right now, and it is the input the charger's lock state machine acts on. It is
+true while a vehicle is detected or while the contactor is not confirmed to be
+open, so the plug is never released while the socket might still be live.
+
+*Disabled* means the plug lock is not activated, or the EVSE is not hardware
+version 4. *Bricklet Dedication Not Verified* means the harness loop is not
+verified or its report has gone stale; note that this does not mean the
+bricklets are gone, since a failure of the lock supply de-asserts the loop while
+both are still fitted. *Idle* means the plug does not need to be locked,
+*Waiting* that it does but is not confirmed locked yet, *Locked* that it is.
+*Fault Timeout* means the plug did not lock in time and *Fault Lock* that the
+charger reported a failed lock attempt.
+
+Charging is blocked in *Bricklet Dedication Not Verified*, *Fault Timeout* and
+*Fault Lock*, all reported as error state 6.
+""",
+'de':
+"""
+Gibt den aktuellen Zustand der Steckerverriegelung zurück.
+
+*Lock Wanted* ist die Entscheidung des EVSE, ob der Stecker gerade verriegelt
+sein muss, und damit die Eingangsgröße für die Zustandsmaschine der Wallbox.
+Der Wert ist wahr, solange ein Fahrzeug erkannt wird oder das Schütz nicht
+sicher offen ist, sodass der Stecker nie freigegeben wird, während die Buchse
+noch spannungsführend sein könnte.
+
+*Disabled* bedeutet, dass die Verriegelung nicht aktiviert ist oder das EVSE
+nicht Hardware-Version 4 ist. *Bricklet Dedication Not Verified* bedeutet, dass
+die Prüfschleife nicht verifiziert ist oder deren Meldung verfallen ist; das
+heißt ausdrücklich nicht, dass die Bricklets fehlen, denn ein Ausfall der
+Versorgung der Verriegelung setzt die Schleife zurück, während beide weiterhin
+verbaut sind. *Idle* bedeutet, dass der Stecker nicht verriegelt sein muss,
+*Waiting*, dass er es muss, aber noch nicht sicher verriegelt ist, *Locked*,
+dass er es ist. *Fault Timeout* bedeutet, dass der Stecker nicht rechtzeitig
+verriegelt wurde, *Fault Lock*, dass die Wallbox einen fehlgeschlagenen
+Verriegelungsversuch gemeldet hat.
+
+In *Bricklet Dedication Not Verified*, *Fault Timeout* und *Fault Lock* wird das
+Laden blockiert, jeweils gemeldet als Error-State 6.
 """
 }]
 })
