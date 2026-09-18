@@ -10,7 +10,7 @@ from generators.configs.openhab_commonconfig import *
 
 com = {
     'author': 'Olaf Lüke <olaf@tinkerforge.com>',
-    'api_version': [2, 0, 1],
+    'api_version': [2, 0, 2],
     'category': 'Bricklet',
     'device_identifier': 2103,
     'name': 'LED Strip V2',
@@ -501,7 +501,7 @@ com['packets'].append({
 'name': 'Start Frame',
 'elements': [],
 'since_firmware': [2, 2, 0],
-'doc': ['bf', {
+'doc': ['af', {
 'en':
 """
 Start transferring the current frame, irrespective of the configured frame
@@ -519,6 +519,84 @@ Startet die Übertragung des aktuellen Frames, unabhängig von der eingestellten
 Mit dieser Funktion lassen sich die LEDs mit einer variablen Framerate
 aktualisieren. Das automatische Übertragen des Frames sollte dazu deaktiviert
 werden, indem die *frame duration* auf null gesetzt wird.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Truncate Frame',
+'elements': [('Length', 'uint16', 1, 'in', {'range': (0, 6144)})],
+'since_firmware': [2, 3, 0],
+'doc': ['af', {
+'en':
+"""
+Truncates the length of the frame stored on the bricklet to the specified
+value.
+
+Normally, the maximum amount of previously set LED values is transferred for
+every frame. For example, if values for 256 LEDs have been set, every frame
+update will transfer the data for all 256 LEDs, regardless of how many LED
+values had actually changed. By truncating the frame, the amount of transferred
+LED values can be reduced again. This can be used to quickly update the
+beginning of an LED strip and is usually only useful with a dynamic frame rate.
+
+Truncating to a length of zero will stop automatic frame updates until any LED
+value is set again.
+""",
+'de':
+"""
+Kürzt den auf dem Bricklet zwischengespeicherten Frame auf die angegebene
+Länge.
+
+Normalerweise werden für jeden Frame die maximale Anzahl der bisher gesetzten
+LED-Werte übertragen. Wurden beispielsweise Werte für 256 LEDs gesetzt, so
+werden in jedem Frame die Werte alle 256 LEDs übertragen, unabhängig von der
+Anzahl der tatsächich geänderten LED-Werte. Mit dieser Funktion kann der Frame
+gekürzt werden, sodass wieder eine geringere Anzahl LED-Werte übertragen wird.
+Dadurch kann beispielsweise der Anfang einer LED-Kette schneller aktualisiert
+werden. Dies ist üblicherweise nur bei einer dynamischen Framerate sinnvoll.
+
+Wenn der Frame auf eine Länge von null gekürzt wird, werden automatische
+Frame-Updates deaktiviert, bis wieder ein LED-Wert gesetzt wird.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Set Auto Truncate',
+'elements': [('Length', 'uint16', 1, 'in', {'range': (0, 6144), 'default': 6144})],
+'since_firmware': [2, 3, 0],
+'doc': ['af', {
+'en':
+"""
+Automatically truncates the frame after it was sent.
+See :func:`Truncate Frame`.
+""",
+'de':
+"""
+Kürzt den Frame automatisch nachdem er komlett gesendet wurde.
+Siehe :func:`Truncate Frame`.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Get Auto Truncate',
+'elements': [('Length', 'uint16', 1, 'out', {'range': (0, 6144), 'default': 6144})],
+'since_firmware': [2, 3, 0],
+'doc': ['af', {
+'en':
+"""
+Returns length to which the frame will automatically be truncated, as set by
+:func:`Set Auto Truncate`.
+""",
+'de':
+"""
+Gibt die Länge zurück, auf die der Frame automatisch gekürzt wird, wie von
+:func:`Set Auto Truncate` gesetzt.
 """
 }]
 })
