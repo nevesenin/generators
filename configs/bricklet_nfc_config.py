@@ -10,7 +10,7 @@ from generators.configs.openhab_commonconfig import *
 
 com = {
     'author': 'Olaf Lüke <olaf@tinkerforge.com>',
-    'api_version': [2, 0, 3],
+    'api_version': [2, 0, 4],
     'category': 'Bricklet',
     'device_identifier': 286,
     'name': 'NFC',
@@ -1342,6 +1342,72 @@ Returns the tag ID and length as set by :func:`Cardemu Set Tag ID`.
 'de':
 """
 Gibt die Tag ID und Länge zurück, wie von :func:`Cardemu Set Tag ID` gesetzt.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'callback',
+'name': 'Simple Tag Seen',
+'elements': [('Tag Type', 'uint8', 1, 'out', {'constant_group': 'Tag Type'}),
+             ('Tag ID Length', 'uint8', 1, 'out', {'range': (0, 10)}),
+             ('Tag ID Data', 'uint8', 10, 'out', {})],
+'since_firmware': [2, 1, 4],
+'doc': ['c', {
+'en':
+"""
+This callback is called when a tag is seen in simple mode.
+It will be called again periodically when a tag is constantly seen.
+See :func:`Set Simple Tag Seen Callback Configuration` for the period setting.
+""",
+'de':
+"""
+Dieser Callback wird ausgelöst, wenn ein Tag im Simple-Mode gesehen wird.
+Er wird periodisch wiederkehrend ausgelöst, wenn ein Tag permanent gesehen
+wird. Siehe :func:`Set Simple Tag Seen Callback Configuration` für die
+Einstellung der Periodendauer.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Set Simple Tag Seen Callback Configuration',
+'elements': [('Period', 'uint32', 1, 'in', {'scale': (1, 1000), 'unit': 'Second', 'default': 0})],
+'since_firmware': [2, 1, 4],
+'doc': ['ccf', {
+'en':
+"""
+If you enable this callback by setting a positive period, the
+:cb:`Simple Tag Seen` callback is triggered every time a new tag is seen in
+simple mode. If a tag is constantly seen, the callback will trigger again
+periodically, depending on the period setting. A period of 0 will disable the
+callback.
+""",
+'de':
+"""
+Wenn dieser Callback durch Setzen einer positiven Periodendauer aktiviert ist,
+wird der :cb:`Simple Tag Seen` Callback jedes Mal ausgelöst, wenn ein Tag im
+Simple-Mode gesehen wird. Wenn ein Tag permanent gesehen wird, löst der
+Callback periodisch aus, abhängig von der eingestellten Periodendauer. Eine
+Periodendauer von 0 deaktiviert den Callback.
+"""
+}]
+})
+
+com['packets'].append({
+'type': 'function',
+'name': 'Get Simple Tag Seen Callback Configuration',
+'elements': [('Period', 'uint32', 1, 'out', {'scale': (1, 1000), 'unit': 'Second', 'default': 0})],
+'since_firmware': [2, 1, 4],
+'doc': ['ccf', {
+'en':
+"""
+Returns the configuration as set by :func:`Set Simple Tag Seen Callback Configuration`.
+""",
+'de':
+"""
+Gibt die Konfiguration zurück, wie von :func:`Set Simple Tag Seen Callback Configuration` gesetzt.
 """
 }]
 })
